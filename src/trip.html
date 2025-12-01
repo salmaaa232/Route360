@@ -6,6 +6,8 @@
   <title>Trip — Route 360</title>
 
   <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
     body{background:#f6f7f8;}
@@ -90,6 +92,7 @@
       <div class="tabs" role="tablist" aria-label="Trip tabs">
         <button class="tab active" data-tab="overview">overview</button>
         <button class="tab" data-tab="itinerary">Itinerary</button>
+        <div style="height:10px"></div>
         <button class="tab" data-tab="map">Map</button>
       </div>
 
@@ -106,6 +109,10 @@
               <div class="muted" id="overviewDesc"></div>
               <div style="height:14px"></div>
               <button class="loc-btn" id="overviewAddLoc">+ Location</button>
+
+<!-- new: small tabs/cards for locations -->
+<div id="overviewLocations" class="overview-locations"></div>
+
             </div>
           </div>
 
@@ -131,23 +138,13 @@
           </div>
 
           <!-- Map -->
+<!-- Map -->
           <div id="tab-map" class="hide">
-            <div class="panel">
-              <h3>Map view</h3>
-              <p class="muted">Add locations to see them on the map.</p>
-              <button class="loc-btn" id="mapAddLoc">+ Location</button>
-            </div>
-            <div id="map" style="height:320px;border-radius:10px;"></div>
 
           </div>
         </div>
-
-        <!-- RIGHT: map box (visible for overview + map tabs like your screenshots) -->
         <div id="rightMapPanel">
-          <div class="map-box">
-            <img src="Public/Cards/MapIcon.png" alt="map placeholder">
-          </div>
-          <div style="height:10px"></div>
+          <div id="map" class="map-view"></div>
           <button class="loc-btn" id="rightAddLoc">+ Location</button>
         </div>
 
@@ -155,35 +152,31 @@
     </section>
 
   </div>
-  <script>
-  // your api key here
-  window.GOOGLE_MAPS_API_KEY = "PASTE_YOUR_KEY_HERE";
-</script>
+
 
   <script src="auth.js" defer></script>
-  <script>
-  // Bootstrap loader that installs google.maps.importLibrary
-  (g => {
-    let h, a, k, p = "The Google Maps JavaScript API",
-      c = "google", l = "importLibrary",
-      q = "__ib__", m = document, b = window;
-    b = b[c] || (b[c] = {});
-    const d = b.maps || (b.maps = {}), r = new Set(), e = new URLSearchParams(),
-      u = () => h || (h = new Promise(async (f, n) => {
-        await (a = m.createElement("script"));
-        e.set("key", window.GOOGLE_MAPS_API_KEY);
-        e.set("v", "weekly");
-        e.set("loading", "async");
-        e.set("callback", c + ".maps." + q);
-        a.src = `https://maps.googleapis.com/maps/api/js?` + e;
-        d[q] = f;
-        a.onerror = () => n(Error(p + " could not load."));
-        m.head.append(a);
-      }));
-    d[l] ? console.warn(p + " only loads once. Ignoring:", g)
-         : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
-  })({});
-</script>
+
   <script src="trip.js" defer></script>
+
+  <div id="locModal" class="modal hide" aria-hidden="true">
+    <div class="modal__card">
+      <h3 class="modal__title">Add location</h3>
+
+      <div class="autocomplete">
+        <input
+          id="locSearchInput"
+          class="text-input autocomplete__input"
+          type="text"
+          placeholder="Search a place..."
+          autocomplete="off"
+        />
+        <ul id="locSuggestions" class="autocomplete__list hide"></ul>
+      </div>
+
+      <div class="modal__actions">
+        <button id="locCancelBtn" class="btn ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

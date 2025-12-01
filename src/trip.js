@@ -85,6 +85,7 @@ if (overviewDescEl) {
   overviewDescEl.textContent = trip.desc ? trip.desc : "No description yet.";
 }
 
+
 // ---------------- TABS ----------------
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const views = {
@@ -102,10 +103,7 @@ function showTab(name) {
   if (rightMapPanel) rightMapPanel.style.display = (name === "itinerary") ? "none" : "block";
 
   // when entering map tab, load map
-  if (name === "map") {
-    if (!mapReady) initMapImport();
-    else refreshMapMarkers();
-  }
+
 }
 
 tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
@@ -168,7 +166,7 @@ function renderItinerary() {
     addLocBtn.textContent = "+Loc";
     addLocBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      addLocationToItem(it.id);
+      openLocModal("item", it.id);
     });
 
     const editBtn = document.createElement("button");
@@ -200,22 +198,172 @@ function renderItinerary() {
 renderItinerary();
 
 // ---------------- TRIP-LEVEL LOCATIONS (optional quick add) ----------------
-function addTripLocationPrompt() {
-  const loc = prompt("Add a location for this trip (address or place name)");
-  if (!loc) return;
+const locModal = document.getElementById("locModal");
+const locSearchInput = document.getElementById("locSearchInput");
+const locSuggestions = document.getElementById("locSuggestions");
+const locCancelBtn = document.getElementById("locCancelBtn");
 
-  trip.locations = trip.locations || [];
-  trip.locations.push({ id: "loc_" + Date.now(), location: loc, title: loc });
+// which thing are we adding location to?
+let locTargetType = "trip"; // "trip" | "item"
+let locTargetId = null;     // itinerary item id if type="item"
 
-  persistTrip();
-  alert("Location added — open Map tab to view it.");
-  refreshMapMarkers();
+// open/close
+function openLocModal(type = "trip", id = null) {
+  locTargetType = type;
+  locTargetId = id;
+
+  locModal.classList.remove("hide");
+  locSearchInput.value = "";
+  locSuggestions.classList.add("hide");
+  locSuggestions.innerHTML = "";
+  locSearchInput.focus();
 }
 
-["addLocationBtn", "overviewAddLoc", "mapAddLoc", "rightAddLoc"].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener("click", addTripLocationPrompt);
+function closeLocModal() {
+  locModal.classList.add("hide");
+}
+
+if (locCancelBtn) locCancelBtn.addEventListener("click", closeLocModal);
+
+// trip-level buttons open modal
+["addLocationBtn", "overviewAddLoc", "mapAddLoc", "rightAddLoc"].forEach(btnId => {
+  const el = document.getElementById(btnId);
+  if (el) el.addEventListener("click", () => openLocModal("trip"));
 });
+
+// ------- Photon autocomplete -------
+let debounceTimer = null;
+
+locSearchInput.addEventListener("input", () => {
+  const q = locSearchInput.value.trim();
+  clearTimeout(debounceTimer);
+
+  if (q.length < 3) {
+    locSuggestions.classList.add("hide");
+    locSuggestions.innerHTML = "";
+    return;
+  }
+
+  debounceTimer = setTimeout(() => searchPhoton(q), 350);
+});
+
+async function searchPhoton(query) {
+  try {
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6`;
+    const res = await fetch(url);
+    const data = await res.json();
+    renderPhotonSuggestions(data.features || []);
+  } catch (err) {
+    console.error("Photon search failed:", err);
+    locSuggestions.classList.add("hide");
+  }
+}
+
+function makeLocationChip(loc) {
+  const btn = document.createElement("button");
+  btn.className = "location-chip";
+  btn.type = "button";
+
+  const left = document.createElement("div");
+  left.className = "location-chip__name";
+  left.textContent = loc.title || loc.location || "Place";
+
+  const right = document.createElement("div");
+  right.className = "location-chip__meta";
+  right.textContent = loc.location || "";
+
+  btn.appendChild(left);
+  btn.appendChild(right);
+
+  btn.addEventListener("click", () => {
+    focusLocationOnMap(loc.id);
+  });
+
+  return btn;
+}
+
+function renderLocationLists() {
+  const locs = trip.locations || [];
+
+  const overviewContainer = document.getElementById("overviewLocations");
+  const mapContainer = document.getElementById("mapLocations");
+
+  if (overviewContainer) {
+    overviewContainer.innerHTML = "";
+    locs.forEach(loc => overviewContainer.appendChild(makeLocationChip(loc)));
+  }
+
+  if (mapContainer) {
+    mapContainer.innerHTML = "";
+    if (!locs.length) {
+      mapContainer.textContent = "No places yet.";
+    } else {
+      locs.forEach(loc => mapContainer.appendChild(makeLocationChip(loc)));
+    }
+  }
+}
+
+
+function renderPhotonSuggestions(features) {
+  locSuggestions.innerHTML = "";
+
+  if (!features.length) {
+    locSuggestions.classList.add("hide");
+    return;
+  }
+
+  features.forEach(f => {
+    const p = f.properties || {};
+    const name = p.name || p.street || "Unnamed place";
+    const city = p.city || p.state || "";
+    const country = p.country || "";
+    const label = [name, city, country].filter(Boolean).join(", ");
+
+    const li = document.createElement("li");
+    li.textContent = label;
+
+    li.addEventListener("click", () => {
+      const [lon, lat] = f.geometry.coordinates;
+      onPlaceSelected({ label, lat, lon });
+    });
+
+    locSuggestions.appendChild(li);
+  });
+
+  locSuggestions.classList.remove("hide");
+}
+
+// when user picks a suggestion
+function onPlaceSelected(place) {
+  const { label, lat, lon } = place;
+
+  if (locTargetType === "trip") {
+    trip.locations = trip.locations || [];
+    trip.locations.push({
+      id: "loc_" + Date.now(),
+      location: label,
+      title: label,
+      lat,
+      lng: lon
+    });
+
+  } else if (locTargetType === "item") {
+    const items = (trip.itinerary || []).concat(trip.locations || []);
+    const it = items.find(x => x.id === locTargetId);
+    if (it) {
+      it.location = label;
+      it.lat = lat;
+      it.lng = lon;
+    }
+  }
+
+persistTrip();
+renderItinerary();
+renderLocationLists();
+refreshMapMarkers();
+closeLocModal();
+
+}
 
 // ---------------- ITINERARY ADD / EDIT FORM ----------------
 const itineraryAddBtn = document.getElementById("itineraryAddBtn");
@@ -312,19 +460,7 @@ function deleteItItem(id) {
   refreshMapMarkers();
 }
 
-function addLocationToItem(id) {
-  const loc = prompt("Add location for this item (e.g. Shopping at Mall)");
-  if (!loc) return;
 
-  const items = (trip.itinerary || []).concat(trip.locations || []);
-  const it = items.find(x => x.id === id);
-  if (!it) return alert("Itinerary item not found");
-
-  it.location = loc;
-  persistTrip();
-  renderItinerary();
-  refreshMapMarkers();
-}
 
 function persistTrip() {
   trips = loadTrips();
@@ -374,76 +510,90 @@ if (editTripBtn) {
   });
 }
 
-// ---------------- GOOGLE MAPS (IMPORTLIBRARY ONLY) ----------------
-// NOTE: trip.html must include the bootstrap loader + window.GOOGLE_MAPS_API_KEY
-// and must have: <div id="map" style="height:320px"></div>
+// ---------------- LEAFLET + OSM (FREE MAP) ----------------
 
 let map;
 let mapReady = false;
 let mapMarkers = [];
-let GeocoderLib = null;
-let MarkerLib = null;
 
-async function initMapImport() {
+function initLeafletMap() {
   const mapEl = document.getElementById("map");
   if (!mapEl) return;
 
-  const { Map } = await google.maps.importLibrary("maps");
-  ({ Geocoder: GeocoderLib } = await google.maps.importLibrary("geocoding"));
-  ({ Marker: MarkerLib } = await google.maps.importLibrary("marker"));
+  map = L.map(mapEl).setView([20, 0], 2);
 
-  map = new Map(mapEl, {
-    center: { lat: 20, lng: 0 },
-    zoom: 2,
-    mapTypeControl: false
-  });
+  // Free OpenStreetMap tiles
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
 
   mapReady = true;
   refreshMapMarkers();
 }
 
 function clearMarkers() {
-  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers.forEach(m => map.removeLayer(m));
   mapMarkers = [];
 }
 
 function refreshMapMarkers() {
-  if (!mapReady || !map || !GeocoderLib || !MarkerLib) return;
+  if (!mapReady || !map) return;
 
   clearMarkers();
 
   const items = (trip.itinerary || []).concat(trip.locations || []);
-  const geocoder = new GeocoderLib();
 
   items.forEach(it => {
-    if (!it.location) return;
+    if (typeof it.lat === "number" && typeof it.lng === "number") {
+      const marker = L.marker([it.lat, it.lng])
+        .addTo(map)
+        .bindPopup(it.title || it.location || "Location");
 
-    geocoder.geocode({ address: it.location }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        const pos = results[0].geometry.location;
+      // remember which trip location this marker is for
+      marker._locId = it.id;
 
-        const marker = new MarkerLib({
-          map,
-          position: pos,
-          title: it.title || it.location
-        });
-
-        mapMarkers.push(marker);
-
-        if (mapMarkers.length === 1) {
-          map.setCenter(pos);
-          map.setZoom(10);
-        }
-      }
-    });
+      mapMarkers.push(marker);
+    }
   });
+
+  if (mapMarkers.length) {
+    const group = L.featureGroup(mapMarkers);
+    map.fitBounds(group.getBounds().pad(0.3));
+  }
 }
 
-// load map when Map tab is clicked
+
+
+// when Map tab is clicked
 const mapTabBtn = tabs.find(t => t.dataset.tab === "map");
 if (mapTabBtn) {
   mapTabBtn.addEventListener("click", () => {
-    if (!mapReady) initMapImport();
-    else refreshMapMarkers();
+    if (!mapReady) {
+      initLeafletMap();
+      setTimeout(() => map.invalidateSize(), 0); // ✅ fix hidden-tab sizing
+    } else {
+      refreshMapMarkers();
+      setTimeout(() => map.invalidateSize(), 0);
+    }
   });
 }
+
+function focusLocationOnMap(locId) {
+  if (!mapReady) {
+    initLeafletMap();
+  }
+
+  const loc = (trip.locations || []).find(l => l.id === locId);
+  if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number" || !map) return;
+
+  const target = [loc.lat, loc.lng];
+  map.setView(target, 10);
+
+  // if a marker exists for this place, open its popup
+  const marker = mapMarkers.find(m => m._locId === locId);
+  if (marker) {
+    marker.openPopup();
+  }
+}
+
+

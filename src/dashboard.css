@@ -262,6 +262,12 @@ body{
   display: block;
 }
 
+.map-view {
+  height: 320px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
 /* responsive tweaks */
 @media (max-width:900px){
   .modal-body{ flex-direction:column; }
@@ -274,3 +280,176 @@ body{
   .welcome-title{ font-size:26px; }
   .cover{ height:180px; }
 }
+
+/* Trip css */
+
+/* ---------- Modal base ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display: grid;
+  place-items: center;
+  z-index: 99999;
+}
+
+.modal.hide { display: none !important; }
+
+.modal__card {
+  width: min(520px, 92vw);
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+
+.modal__title {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.modal__actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ---------- Autocomplete dropdown ---------- */
+.autocomplete {
+  position: relative;
+}
+
+.autocomplete__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100000;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.autocomplete__list li {
+  padding: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.autocomplete__list li:hover {
+  background: #f5f5f5;
+}
+
+.map-view {
+  height: 320px;
+  border-radius: 10px;
+}
+
+/* overview & map lists */
+.overview-locations,
+.map-locations {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-chip {
+  border-radius: 999px;
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  padding: 8px 12px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.location-chip__name {
+  font-weight: 600;
+}
+
+.location-chip__meta {
+  color: #777;
+  font-size: 12px;
+}
+
+/* ✅ MAP TAB = FULL MAP ONLY */
+.content-grid.map-only {
+  grid-template-columns: 1fr !important;
+}
+
+/* hide LEFT column only when map-only is active */
+.content-grid.map-only #leftColumn {
+  display: none !important;
+}
+
+/* make map column stretch full width */
+.content-grid.map-only #rightMapPanel {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.location-chip {
+  border-radius: 16px;
+  background: #f7f7f8;
+  border: 1px solid #eee;
+  padding: 10px 12px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+  transition: transform .08s ease, background .15s ease;
+}
+.location-chip:hover {
+  background: #f1f1f4;
+  transform: translateY(-1px);
+}
+
+.location-chip__left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-chip__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.chip-action {
+  border: 0;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chip-action--edit {
+  background: #111;
+  color: #fff;
+}
+
+.chip-action--delete {
+  background: #fff;
+  color: #111;
+  border: 1px solid #ddd;
+}
+.chip-action--delete:hover {
+  background: #ffe8ea;
+  border-color: #ffb3ba;
+}
+
+
+

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Route360</title>
+</head>
+<body>
+    <section class="Homepage">
+        <nav>
+            <a href="#" class="Logo">
+                <img src="Public/RouteLogo.png" width="35" height="35"/>
+                <p>Route 360</p>
+            </a>
+            <div class="NavLinks">
+                <a href="dashboard.html">My trips</a>
+                <a href="#">Globe</a>
+                <button class="signInBtn" onclick="location.href='auth.html'">sign in</button>            </div>
+        </nav>
+        <div class="Intro">
+            <h1>Explore The World</h1>
+            <div class="Introsmall">
+                <P>Plan your perfect trip with Route 360</P>
+                <button onclick="location.href='dashboard.html'">Start Now ➙</button>
+            </div>
+        </div>
+        <div id="cards">
+            <div class="card">
+                <img src="/src/Public/Cards/MapIcon.png" width="45" height="42">
+                <h2>Interactive Maps</h2>
+                <p>Explore destinations through interactive maps. <br /> Zoom, drag, and tap markers to plan your journey.</p>
+            </div>
+            <div class="card">
+                <img src="/src/Public/Cards/Clock.png" width="45" height="42">
+                <h2>Day by Day itineraries</h2>
+                <p>
+                    explore plans with drag and drop ease <br /> rearrange activities and customize your trip instantly.                </p>
+            </div>
+            <div class="card">
+                <img src="/src/Public/Cards/DragnDrop.png" width="45">
+                <h2>Drag and Drop planing</h2>
+                <p>
+                    explore trips with day by day itineraries <br /> clear schedules that guide your journey step by step.
+                </p>
+            </div>
+        </div>
+    </section>
+            <footer class="HomepageFooter">
+                <h2>Ready to plan Your next adventure?</h2>
+                <button class="footerSignBtn" onclick="location.href='auth.html'" >Sign in Now</button>
+            </footer>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Trip — Route 360</title>
+
+  <link rel="stylesheet" href="dashboard.css">
+
+  <style>
+    body{background:#f6f7f8;}
+    .trip-page{max-width:1100px;margin:0 auto;padding:18px 18px 40px;}
+    .trip-header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 16px;border-bottom:1px solid #e7e7e7;}
+    .back-btn{background:#111;color:#fff;border:0;border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px}
+    .top-actions{display:flex;gap:18px;align-items:center;font-size:14px}
+    .top-actions a{color:#111;text-decoration:none}
+    .pill{background:#111;color:#fff;border:0;border-radius:999px;padding:8px 12px;cursor:pointer}
+
+    .hero{margin-top:18px;border-radius:14px;overflow:hidden;height:190px;background:#ddd}
+    .hero img{width:100%;height:100%;object-fit:cover}
+
+    .trip-card-wide{margin-top:14px;background:#fff;border-radius:14px;padding:18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.06);border:1px solid #eee}
+    .trip-title{font-size:20px;font-weight:800;margin:0 0 6px}
+    .trip-dates{font-size:13px;color:#555;display:flex;gap:6px;align-items:center}
+    .loc-btn{background:#111;color:#fff;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;font-size:12px}
+
+    .main-panel{margin-top:18px;background:#fff;border-radius:14px;padding:18px;border:1px solid #eee;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+    .tabs{display:inline-flex;background:#f1f1f1;border-radius:999px;padding:6px;gap:6px}
+    .tab{border:0;background:transparent;padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px}
+    .tab.active{background:#ddd}
+
+    .content-grid{margin-top:18px;display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+    .panel{background:#fff;border-radius:12px;padding:14px;border:1px solid #eee}
+    .panel h3{margin:0 0 10px;font-size:16px}
+    .muted{color:#777;font-size:13px}
+
+    /* map placeholder */
+    .map-box{height:320px;border-radius:10px;background:#e9f1fb;display:grid;place-items:center;border:2px solid #8b5cf6}
+    .map-box img{width:70px;opacity:.7}
+
+    .itinerary-item{
+      background:#fafafa;border:1px solid #eee;border-radius:12px;
+      padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center
+    }
+    .itinerary-item small{display:block;color:#777;margin-top:4px}
+
+    .hide{display:none !important}
+    @media (max-width: 850px){
+      .content-grid{grid-template-columns:1fr}
+      .hero{height:160px}
+      .map-box{height:260px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="trip-page">
+
+    <!-- top bar -->
+    <header class="trip-header">
+      <button class="back-btn" id="backBtn">← Back</button>
+
+      <div class="top-actions">
+        <a href="dashboard.html">My trips</a>
+        <a href="#" id="globeLink">Globe</a>
+        <button class="pill" id="logoutBtn">sign out</button>
+      </div>
+    </header>
+
+    <!-- hero cover -->
+    <section class="hero">
+      <img id="heroImg" src="" alt="Trip cover">
+    </section>
+
+    <!-- title + dates card -->
+    <section class="trip-card-wide">
+      <div>
+        <h2 class="trip-title" id="tripTitle">Trip</h2>
+        <div class="trip-dates" id="tripDates">Dates...</div>
+      </div>
+      <button class="loc-btn" id="addLocationBtn">+ Location</button>
+    </section>
+
+    <!-- tabs + content -->
+    <section class="main-panel">
+      <div class="tabs" role="tablist" aria-label="Trip tabs">
+        <button class="tab active" data-tab="overview">overview</button>
+        <button class="tab" data-tab="itinerary">Itinerary</button>
+        <button class="tab" data-tab="map">Map</button>
+      </div>
+
+      <div class="content-grid">
+
+        <!-- LEFT: dynamic tab content -->
+        <div>
+          <!-- Overview -->
+          <div id="tab-overview">
+            <div class="panel">
+              <h3>Trip summary</h3>
+              <div class="muted" id="overviewDates"></div>
+              <div style="height:8px"></div>
+              <div class="muted" id="overviewDesc"></div>
+              <div style="height:14px"></div>
+              <button class="loc-btn" id="overviewAddLoc">+ Location</button>
+            </div>
+          </div>
+
+          <!-- Itinerary -->
+          <div id="tab-itinerary" class="hide">
+            <div class="panel">
+              <h3>Full itinerary</h3>
+              <div id="itineraryList" class="muted">No itinerary yet.</div>
+            </div>
+          </div>
+
+          <!-- Map -->
+          <div id="tab-map" class="hide">
+            <div class="panel">
+              <h3>Map view</h3>
+              <p class="muted">Add locations to see them on the map.</p>
+              <button class="loc-btn" id="mapAddLoc">+ Location</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: map box (visible for overview + map tabs like your screenshots) -->
+        <div id="rightMapPanel">
+          <div class="map-box">
+            <img src="Public/Cards/MapIcon.png" alt="map placeholder">
+          </div>
+          <div style="height:10px"></div>
+          <button class="loc-btn" id="rightAddLoc">+ Location</button>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script src="auth.js" defer></script>
+  <script src="trip.js" defer></script>
+</body>
+</html>

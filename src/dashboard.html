@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Travel Dashboard</title>
+
+  <!-- Google fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+  <div class="page" id="app">
+    <header class="site-header">
+      <div class="top-left">
+        <a class="back" href="index.html">← Back</a>
+      </div>
+
+      <div class="top-actions">
+        <a class="link-muted" href="#" id="tripsLink">My trips</a>
+        <a class="link-muted" href="#" id="globeLink">Globe</a>
+        <button class="pill" id="openAdd">+ New trip</button>
+      </div>
+    </header>
+
+    <main>
+      <h1 class="page-title">Dashboard</h1>
+
+      <section class="welcome" id="welcomeBanner">
+        <h2 id="welcomeText" class="welcome-title">Welcome Back, Guest!</h2>
+        <p id="welcomeSub" class="welcome-sub">You have 0 trips planned, 0 upcoming.</p>
+      </section>
+
+      <section>
+        <div class="grid" id="tripsGrid">
+          <!-- trip cards injected by JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal for add trip -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle" class="modal-title">Add new trip</h3>
+
+      <div class="modal-body">
+        <div class="modal-left">
+          <label class="label">Cover image</label>
+          <div class="img-preview" id="imgPreview">No image</div>
+          <input class="file-input" type="file" id="coverInput" accept="image/*">
+        </div>
+
+        <div class="modal-right">
+          <label class="label">Trip title</label>
+          <input id="titleInput" class="text-input" type="text" placeholder="e.g. Trip to Tokyo and Kyoto">
+
+          <div class="form-row">
+            <div class="col">
+              <label class="label">Start date</label>
+              <input id="startDate" class="date-input" type="date">
+            </div>
+            <div class="col">
+              <label class="label">End date</label>
+              <input id="endDate" class="date-input" type="date">
+            </div>
+          </div>
+
+          <div class="desc-row">
+            <label class="label">Description</label>
+            <textarea id="descInput" class="textarea" placeholder="Add details about the trip"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn ghost" id="closeModal">Cancel</button>
+        <button class="btn" id="saveTrip">Save trip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link external JS -->
+<script src="auth.js" defer></script>
+<script src="dashboard.js" defer></script>
+
+
+</body>
+</html>

@@ -15,6 +15,7 @@ if (!userId) {
   const openBtn = document.getElementById('openAdd');
   const closeBtn = document.getElementById('closeModal');
   const saveBtn = document.getElementById('saveTrip');
+  const modalTitle = document.getElementById('modalTitle');
   const coverInput = document.getElementById('coverInput');
   const imgPreview = document.getElementById('imgPreview');
   const titleInput = document.getElementById('titleInput');
@@ -93,27 +94,59 @@ const KEY_NAME  = `route360_username_${userId}_v1`;
     }
 
     trips.forEach(trip => {
-  const card = document.createElement('div');
-  card.className = 'trip-card';
-  card.style.cursor = "pointer";
+      const card = document.createElement('div');
+      card.className = 'trip-card';
+      card.style.cursor = "pointer";
 
-  card.innerHTML = `
-    <div class="cover">
-      <img src="${trip.coverDataUrl || placeholderDataUrl(trip.title)}" alt="">
-      <div class="cover-title">${escapeHtml(trip.title || 'Untitled')}</div>
-    </div>
-    <div class="meta">
-      ${escapeHtml(trip.title || 'Untitled')}
-      <small>${trip.start ? formatDate(trip.start) : ''}${trip.start && trip.end ? ' to ' : ''}${trip.end ? formatDate(trip.end) : ''}</small>
-    </div>
-  `;
+      card.innerHTML = `
+        <div class="cover">
+          <img src="${trip.coverDataUrl || placeholderDataUrl(trip.title)}" alt="">
+          <div class="cover-title">${escapeHtml(trip.title || 'Untitled')}</div>
+        </div>
+        <div class="meta">
+          ${escapeHtml(trip.title || 'Untitled')}
+          <small>${trip.start ? formatDate(trip.start) : ''}${trip.start && trip.end ? ' to ' : ''}${trip.end ? formatDate(trip.end) : ''}</small>
+        </div>
+      `;
 
-  card.addEventListener("click", () => {
-    window.location.href = `trip.html?id=${trip.id}`;
-  });
+      // navigation when clicking card
+      card.addEventListener("click", () => {
+        window.location.href = `trip.html?id=${trip.id}`;
+      });
 
-  grid.appendChild(card);
-});
+      // actions container (Edit / Delete)
+      const actions = document.createElement('div');
+      actions.style.display = 'flex';
+      actions.style.gap = '8px';
+      actions.style.marginTop = '8px';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn ghost';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEditModal(trip.id);
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Delete this trip? This action cannot be undone.')) {
+          const all = loadTrips();
+          const filtered = all.filter(t => t.id !== trip.id);
+          saveTrips(filtered);
+          renderTrips();
+        }
+      });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      card.appendChild(actions);
+
+      grid.appendChild(card);
+    });
 
 
     updateWelcomeSummary();
@@ -153,9 +186,38 @@ const KEY_NAME  = `route360_username_${userId}_v1`;
     startDate.value = '';
     endDate.value = '';
     currentCoverDataUrl = '';
+    editingTripId = null;
+    if (modalTitle) modalTitle.textContent = 'Add new trip';
+    if (saveBtn) saveBtn.textContent = 'Save trip';
+  }
+
+  function openEditModal(id){
+    const trips = loadTrips();
+    const t = trips.find(x => x.id === id);
+    if (!t) return alert('Trip not found');
+
+    editingTripId = id;
+    // populate fields
+    titleInput.value = t.title || '';
+    descInput.value = t.desc || '';
+    startDate.value = t.start || '';
+    endDate.value = t.end || '';
+    currentCoverDataUrl = t.coverDataUrl || '';
+
+    // preview
+    imgPreview.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = currentCoverDataUrl || placeholderDataUrl(t.title);
+    img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'cover';
+    imgPreview.appendChild(img);
+
+    if (modalTitle) modalTitle.textContent = 'Edit trip';
+    if (saveBtn) saveBtn.textContent = 'Update trip';
+    modal.style.display = 'flex';
   }
 
   let currentCoverDataUrl = '';
+  let editingTripId = null;
 coverInput.addEventListener('change', (ev) => {
   const f = ev.target.files && ev.target.files[0];
   if (!f) {
@@ -215,11 +277,22 @@ coverInput.addEventListener('change', (ev) => {
     const desc = descInput.value.trim() || '';
     const start = startDate.value || '';
     const end = endDate.value || '';
-    const id = 't_' + Date.now();
     const coverDataUrl = currentCoverDataUrl || placeholderDataUrl(title);
 
     const trips = loadTrips();
-    trips.unshift({ id, title, desc, start, end, coverDataUrl });
+
+    if (editingTripId) {
+      // update existing
+      const idx = trips.findIndex(t => t.id === editingTripId);
+      if (idx !== -1) {
+        trips[idx] = Object.assign({}, trips[idx], { title, desc, start, end, coverDataUrl });
+      }
+    } else {
+      // new trip
+      const id = 't_' + Date.now();
+      trips.unshift({ id, title, desc, start, end, coverDataUrl });
+    }
+
     saveTrips(trips);
     renderTrips();
     closeModal();

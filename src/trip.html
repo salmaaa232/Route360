@@ -78,7 +78,11 @@
         <h2 class="trip-title" id="tripTitle">Trip</h2>
         <div class="trip-dates" id="tripDates">Dates...</div>
       </div>
-      <button class="loc-btn" id="addLocationBtn">+ Location</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="loc-btn" id="addLocationBtn">+ Location</button>
+        <button class="loc-btn" id="editTripBtn">Edit Trip</button>
+        <button class="loc-btn" id="deleteTripBtn">Delete Trip</button>
+      </div>
     </section>
 
     <!-- tabs + content -->
@@ -109,6 +113,19 @@
           <div id="tab-itinerary" class="hide">
             <div class="panel">
               <h3>Full itinerary</h3>
+              <div style="margin-bottom:12px">
+                <button class="loc-btn" id="itineraryAddBtn">+ Add item</button>
+                <div id="itineraryForm" class="hide" style="margin-top:12px">
+                  <input id="itTitle" class="text-input" type="text" placeholder="What (e.g. Shopping at Market)">
+                  <input id="itDate" class="date-input" type="date">
+                  <input id="itNote" class="text-input" type="text" placeholder="Note (optional)">
+                  <div style="height:8px"></div>
+                  <div>
+                    <button class="btn" id="saveItBtn">Add</button>
+                    <button class="btn ghost" id="cancelItBtn">Cancel</button>
+                  </div>
+                </div>
+              </div>
               <div id="itineraryList" class="muted">No itinerary yet.</div>
             </div>
           </div>
@@ -120,6 +137,8 @@
               <p class="muted">Add locations to see them on the map.</p>
               <button class="loc-btn" id="mapAddLoc">+ Location</button>
             </div>
+            <div id="map" style="height:320px;border-radius:10px;"></div>
+
           </div>
         </div>
 
@@ -136,8 +155,35 @@
     </section>
 
   </div>
+  <script>
+  // your api key here
+  window.GOOGLE_MAPS_API_KEY = "PASTE_YOUR_KEY_HERE";
+</script>
 
   <script src="auth.js" defer></script>
+  <script>
+  // Bootstrap loader that installs google.maps.importLibrary
+  (g => {
+    let h, a, k, p = "The Google Maps JavaScript API",
+      c = "google", l = "importLibrary",
+      q = "__ib__", m = document, b = window;
+    b = b[c] || (b[c] = {});
+    const d = b.maps || (b.maps = {}), r = new Set(), e = new URLSearchParams(),
+      u = () => h || (h = new Promise(async (f, n) => {
+        await (a = m.createElement("script"));
+        e.set("key", window.GOOGLE_MAPS_API_KEY);
+        e.set("v", "weekly");
+        e.set("loading", "async");
+        e.set("callback", c + ".maps." + q);
+        a.src = `https://maps.googleapis.com/maps/api/js?` + e;
+        d[q] = f;
+        a.onerror = () => n(Error(p + " could not load."));
+        m.head.append(a);
+      }));
+    d[l] ? console.warn(p + " only loads once. Ignoring:", g)
+         : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n));
+  })({});
+</script>
   <script src="trip.js" defer></script>
 </body>
 </html>

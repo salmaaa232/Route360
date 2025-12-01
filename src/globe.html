@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+  <title>Globe — Route 360</title>
+
+  <!-- your main css -->
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="globe.css">
+</head>
+<body>
+
+  <div id="root"></div>
+
+  <!-- auth helpers -->
+  <script src="auth.js"></script>
+
+  <!-- React via CDN (no node needed) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel to allow JSX in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Globe libs -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="https://unpkg.com/topojson-client"></script>
+  <script src="https://unpkg.com/d3-geo"></script>
+
+  <!-- Your React code -->
+  <script type="text/babel" src="globe.jsx"></script>
+
+</body>
+</html>

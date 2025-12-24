@@ -111,7 +111,7 @@ const KEY_NAME  = `route360_username_${userId}_v1`;
 
       // navigation when clicking card
       card.addEventListener("click", () => {
-        window.location.href = `trip.html?id=${trip.id}`;
+        window.location.href = `/src/trip page/trip.html?id=${trip.id}`;
       });
 
       // actions container (Edit / Delete)

@@ -1,15 +1,24 @@
-// trip.js — trip details page with tabs + per-user storage + itinerary CRUD + Google Maps (importLibrary)
+// trip.js — Trip details page:
+// - guarded by auth
+// - loads/saves trips per user in localStorage
+// - tabs (overview / itinerary / map)
+// - itinerary CRUD
+// - locations UI + Photon autocomplete
+// - Leaflet map with markers
 
 // ---------------- AUTH GUARD ----------------
+// Require a signed-in user; if missing, redirect to auth page.
 const userId = getCurrentUserId();
 if (!userId) {
-  window.location.replace("auth.html");
+  window.location.replace("/src/Auth page/auth.html");
   throw new Error("Not signed in");
 }
 
+// Per-user storage key so different users don't see each other's trips.
 const KEY_TRIPS = `route360_trips_${userId}_v1`;
 
 // ---------------- HELPERS ----------------
+// Load trips array from localStorage (safe parse).
 function loadTrips() {
   try {
     const raw = localStorage.getItem(KEY_TRIPS);
@@ -19,65 +28,82 @@ function loadTrips() {
   }
 }
 
+// Persist trips array to localStorage.
 function saveTrips(trips) {
   localStorage.setItem(KEY_TRIPS, JSON.stringify(trips));
 }
 
+// Read trip id from URL like ?id=trip_123
 function getTripIdFromUrl() {
   const p = new URLSearchParams(location.search);
   return p.get("id");
 }
 
+// Format a date string into a nice readable label.
 function formatDate(d) {
   if (!d) return "";
   const dt = new Date(d);
-  return dt.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return dt.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
+// Basic HTML escaping helper (useful if you ever inject strings as HTML).
 function escapeHtml(s) {
-  return (s || "").replace(/[&<>"']/g, c =>
-    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])
+  return (s || "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
   );
 }
 
 // ---------------- LOAD TRIP ----------------
 const tripId = getTripIdFromUrl();
 let trips = loadTrips();
-let trip = trips.find(t => t.id === tripId);
+let trip = trips.find((t) => t.id === tripId);
 
+// If the trip doesn't exist, bounce back to dashboard.
 if (!trip) {
-  alert("Trip not found");
-  window.location.replace("dashboard.html");
+  // alert("Trip not found");
+  window.location.replace("/src/Dashboard page/dashboard.html");
 }
 
 // ---------------- HEADER STUFF ----------------
+// Back button uses browser history.
 const backBtn = document.getElementById("backBtn");
 if (backBtn) backBtn.onclick = () => history.back();
 
+// Logout clears user session and returns to auth screen.
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
   logoutBtn.onclick = () => {
     clearCurrentUserId();
-    window.location.replace("auth.html");
+    window.location.replace("/src/Auth page/auth.html");
   };
 }
 
 // ---------------- FILL UI ----------------
+// Populate hero cover image.
 const heroImg = document.getElementById("heroImg");
 if (heroImg) heroImg.src = trip.coverDataUrl || "";
 
+// Populate title + date range in header.
 const tripTitleEl = document.getElementById("tripTitle");
 if (tripTitleEl) tripTitleEl.textContent = trip.title || "Untitled Trip";
 
 const tripDatesEl = document.getElementById("tripDates");
 if (tripDatesEl) {
-  tripDatesEl.textContent =
-    `${formatDate(trip.start)}${trip.start && trip.end ? " to " : ""}${formatDate(trip.end)}`;
+  tripDatesEl.textContent = `${formatDate(trip.start)}${
+    trip.start && trip.end ? " to " : ""
+  }${formatDate(trip.end)}`;
 }
 
+// Overview tab summary fields.
 const overviewDatesEl = document.getElementById("overviewDates");
 if (overviewDatesEl) {
-  overviewDatesEl.textContent = `Dates: ${formatDate(trip.start)} → ${formatDate(trip.end)}`;
+  overviewDatesEl.textContent = `Dates: ${formatDate(trip.start)} → ${formatDate(
+    trip.end
+  )}`;
 }
 
 const overviewDescEl = document.getElementById("overviewDesc");
@@ -85,8 +111,13 @@ if (overviewDescEl) {
   overviewDescEl.textContent = trip.desc ? trip.desc : "No description yet.";
 }
 
+// ---------------- INITIAL RENDERS ----------------
+// Show saved locations right away on Overview + Map lists.
+renderLocationLists();
+// refreshMapMarkers(); intentionally not called here to avoid TDZ issues.
 
 // ---------------- TABS ----------------
+// Tab buttons and their matching content panes.
 const tabs = Array.from(document.querySelectorAll(".tab"));
 const views = {
   overview: document.getElementById("tab-overview"),
@@ -95,21 +126,34 @@ const views = {
 };
 const rightMapPanel = document.getElementById("rightMapPanel");
 
+// Switch visible pane and handle map resizing when needed.
 function showTab(name) {
-  tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
-  Object.entries(views).forEach(([k, el]) => el && el.classList.toggle("hide", k !== name));
+  tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  Object.entries(views).forEach(([k, el]) => {
+    if (el) el.classList.toggle("hide", k !== name);
+  });
 
-  // like your screenshots
-  if (rightMapPanel) rightMapPanel.style.display = (name === "itinerary") ? "none" : "block";
+  // Right-side map panel is hidden on itinerary view.
+  if (rightMapPanel)
+    rightMapPanel.style.display = name === "itinerary" ? "none" : "block";
 
-  // when entering map tab, load map
-
+  // Leaflet needs invalidateSize when its container becomes visible.
+  if (name === "map") {
+    setTimeout(() => {
+      if (!mapReady) initLeafletMap();
+      if (map) map.invalidateSize();
+    }, 50);
+  }
 }
 
-tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
+// Bind tab click handlers.
+tabs.forEach((btn) =>
+  btn.addEventListener("click", () => showTab(btn.dataset.tab))
+);
 showTab("overview");
 
 // ---------------- ITINERARY RENDER ----------------
+// Renders itinerary list with Edit/Delete and "+Loc" actions.
 function renderItinerary() {
   const list = document.getElementById("itineraryList");
   if (!list) return;
@@ -125,6 +169,7 @@ function renderItinerary() {
     const row = document.createElement("div");
     row.className = "itinerary-item";
 
+    // Left column: title + date/note/location.
     const left = document.createElement("div");
     const titleEl = document.createElement("strong");
     titleEl.textContent = it.title || it.name || "Day plan";
@@ -146,6 +191,7 @@ function renderItinerary() {
       left.appendChild(locSmall);
     }
 
+    // Right column: day label + actions.
     const right = document.createElement("div");
     right.className = "muted";
     right.style.display = "flex";
@@ -153,7 +199,7 @@ function renderItinerary() {
     right.style.alignItems = "flex-end";
 
     const dayText = document.createElement("div");
-    dayText.textContent = `Day ${it.day || (idx + 1)}`;
+    dayText.textContent = `Day ${it.day || idx + 1}`;
     right.appendChild(dayText);
 
     const actions = document.createElement("div");
@@ -161,6 +207,7 @@ function renderItinerary() {
     actions.style.gap = "6px";
     actions.style.marginTop = "6px";
 
+    // Add location to this itinerary item.
     const addLocBtn = document.createElement("button");
     addLocBtn.className = "btn ghost";
     addLocBtn.textContent = "+Loc";
@@ -169,6 +216,7 @@ function renderItinerary() {
       openLocModal("item", it.id);
     });
 
+    // Edit itinerary item.
     const editBtn = document.createElement("button");
     editBtn.className = "btn ghost";
     editBtn.textContent = "Edit";
@@ -177,6 +225,7 @@ function renderItinerary() {
       openItEdit(it.id);
     });
 
+    // Delete itinerary item.
     const delBtn = document.createElement("button");
     delBtn.className = "btn";
     delBtn.textContent = "Delete";
@@ -197,17 +246,18 @@ function renderItinerary() {
 }
 renderItinerary();
 
-// ---------------- TRIP-LEVEL LOCATIONS (optional quick add) ----------------
+// ---------------- TRIP-LEVEL LOCATIONS ----------------
+// Shared "add location" modal and its state.
 const locModal = document.getElementById("locModal");
 const locSearchInput = document.getElementById("locSearchInput");
 const locSuggestions = document.getElementById("locSuggestions");
 const locCancelBtn = document.getElementById("locCancelBtn");
 
-// which thing are we adding location to?
-let locTargetType = "trip"; // "trip" | "item"
-let locTargetId = null;     // itinerary item id if type="item"
+// Modal can target either the trip itself or a specific itinerary item.
+let locTargetType = "trip";
+let locTargetId = null;
 
-// open/close
+// Open modal and reset search UI.
 function openLocModal(type = "trip", id = null) {
   locTargetType = type;
   locTargetId = id;
@@ -225,13 +275,16 @@ function closeLocModal() {
 
 if (locCancelBtn) locCancelBtn.addEventListener("click", closeLocModal);
 
-// trip-level buttons open modal
-["addLocationBtn", "overviewAddLoc", "mapAddLoc", "rightAddLoc"].forEach(btnId => {
-  const el = document.getElementById(btnId);
-  if (el) el.addEventListener("click", () => openLocModal("trip"));
-});
+// Any "add location" button opens modal for trip-level location.
+["addLocationBtn", "overviewAddLoc", "mapAddLoc", "rightAddLoc"].forEach(
+  (btnId) => {
+    const el = document.getElementById(btnId);
+    if (el) el.addEventListener("click", () => openLocModal("trip"));
+  }
+);
 
 // ------- Photon autocomplete -------
+// Debounce input so we don't hit API on every keystroke.
 let debounceTimer = null;
 
 locSearchInput.addEventListener("input", () => {
@@ -247,9 +300,12 @@ locSearchInput.addEventListener("input", () => {
   debounceTimer = setTimeout(() => searchPhoton(q), 350);
 });
 
+// Query Photon API for place suggestions.
 async function searchPhoton(query) {
   try {
-    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6`;
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(
+      query
+    )}&limit=6`;
     const res = await fetch(url);
     const data = await res.json();
     renderPhotonSuggestions(data.features || []);
@@ -259,29 +315,89 @@ async function searchPhoton(query) {
   }
 }
 
+// -------- Locations UI (chips with edit + delete) --------
+// Small card for each location in lists.
 function makeLocationChip(loc) {
-  const btn = document.createElement("button");
-  btn.className = "location-chip";
-  btn.type = "button";
+  const row = document.createElement("div");
+  row.className = "location-chip";
 
   const left = document.createElement("div");
-  left.className = "location-chip__name";
-  left.textContent = loc.title || loc.location || "Place";
+  left.className = "location-chip__left";
 
-  const right = document.createElement("div");
-  right.className = "location-chip__meta";
-  right.textContent = loc.location || "";
+  const name = document.createElement("div");
+  name.className = "location-chip__name";
+  name.textContent = loc.title || loc.location || "Place";
 
-  btn.appendChild(left);
-  btn.appendChild(right);
+  const meta = document.createElement("div");
+  meta.className = "location-chip__meta";
+  meta.textContent = loc.location || "";
 
-  btn.addEventListener("click", () => {
+  left.appendChild(name);
+  left.appendChild(meta);
+
+  const actions = document.createElement("div");
+  actions.className = "location-chip__actions";
+
+  // Rename location.
+  const editBtn = document.createElement("button");
+  editBtn.className = "chip-action chip-action--edit";
+  editBtn.textContent = "Edit";
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    editTripLocation(loc.id);
+  });
+
+  // Remove location.
+  const delBtn = document.createElement("button");
+  delBtn.className = "chip-action chip-action--delete";
+  delBtn.textContent = "Delete";
+  delBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    deleteTripLocation(loc.id);
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+
+  row.appendChild(left);
+  row.appendChild(actions);
+
+  // Clicking a chip pans map to it.
+  row.addEventListener("click", () => {
     focusLocationOnMap(loc.id);
   });
 
-  return btn;
+  return row;
 }
 
+// Prompt-edit for trip locations.
+function editTripLocation(locId) {
+  const locs = trip.locations || [];
+  const loc = locs.find((l) => l.id === locId);
+  if (!loc) return;
+
+  const newTitle = prompt("Edit place name", loc.title || loc.location || "");
+  if (newTitle === null) return;
+
+  loc.title = newTitle.trim() || loc.title;
+
+  persistTrip();
+  renderLocationLists();
+  refreshMapMarkers();
+}
+
+// Delete a trip location and refresh UI/map.
+function deleteTripLocation(locId) {
+  if (!confirm("Delete this location?")) return;
+
+  trip.locations = (trip.locations || []).filter((l) => l.id !== locId);
+
+  persistTrip();
+  renderLocationLists();
+  refreshMapMarkers();
+}
+
+// Render location chips into Overview and Map side panels.
 function renderLocationLists() {
   const locs = trip.locations || [];
 
@@ -290,7 +406,7 @@ function renderLocationLists() {
 
   if (overviewContainer) {
     overviewContainer.innerHTML = "";
-    locs.forEach(loc => overviewContainer.appendChild(makeLocationChip(loc)));
+    locs.forEach((loc) => overviewContainer.appendChild(makeLocationChip(loc)));
   }
 
   if (mapContainer) {
@@ -298,12 +414,12 @@ function renderLocationLists() {
     if (!locs.length) {
       mapContainer.textContent = "No places yet.";
     } else {
-      locs.forEach(loc => mapContainer.appendChild(makeLocationChip(loc)));
+      locs.forEach((loc) => mapContainer.appendChild(makeLocationChip(loc)));
     }
   }
 }
 
-
+// Show Photon results under the input.
 function renderPhotonSuggestions(features) {
   locSuggestions.innerHTML = "";
 
@@ -312,7 +428,7 @@ function renderPhotonSuggestions(features) {
     return;
   }
 
-  features.forEach(f => {
+  features.forEach((f) => {
     const p = f.properties || {};
     const name = p.name || p.street || "Unnamed place";
     const city = p.city || p.state || "";
@@ -322,6 +438,7 @@ function renderPhotonSuggestions(features) {
     const li = document.createElement("li");
     li.textContent = label;
 
+    // Selecting a suggestion stores it with lat/lon.
     li.addEventListener("click", () => {
       const [lon, lat] = f.geometry.coordinates;
       onPlaceSelected({ label, lat, lon });
@@ -333,7 +450,9 @@ function renderPhotonSuggestions(features) {
   locSuggestions.classList.remove("hide");
 }
 
-// when user picks a suggestion
+// When a place is chosen:
+// - add to trip.locations, OR
+// - attach to an itinerary item.
 function onPlaceSelected(place) {
   const { label, lat, lon } = place;
 
@@ -344,12 +463,11 @@ function onPlaceSelected(place) {
       location: label,
       title: label,
       lat,
-      lng: lon
+      lng: lon,
     });
-
   } else if (locTargetType === "item") {
     const items = (trip.itinerary || []).concat(trip.locations || []);
-    const it = items.find(x => x.id === locTargetId);
+    const it = items.find((x) => x.id === locTargetId);
     if (it) {
       it.location = label;
       it.lat = lat;
@@ -357,15 +475,15 @@ function onPlaceSelected(place) {
     }
   }
 
-persistTrip();
-renderItinerary();
-renderLocationLists();
-refreshMapMarkers();
-closeLocModal();
-
+  persistTrip();
+  renderItinerary();
+  renderLocationLists();
+  refreshMapMarkers();
+  closeLocModal();
 }
 
 // ---------------- ITINERARY ADD / EDIT FORM ----------------
+// Form elements for adding/editing itinerary items.
 const itineraryAddBtn = document.getElementById("itineraryAddBtn");
 const itineraryForm = document.getElementById("itineraryForm");
 const itTitle = document.getElementById("itTitle");
@@ -376,6 +494,7 @@ const cancelItBtn = document.getElementById("cancelItBtn");
 
 let editingItId = null;
 
+// Show form on "add" click.
 if (itineraryAddBtn) {
   itineraryAddBtn.addEventListener("click", () => {
     if (itineraryForm) itineraryForm.classList.remove("hide");
@@ -383,6 +502,7 @@ if (itineraryAddBtn) {
   });
 }
 
+// Cancel resets form state.
 if (cancelItBtn) {
   cancelItBtn.addEventListener("click", () => {
     if (itineraryForm) itineraryForm.classList.add("hide");
@@ -394,30 +514,36 @@ if (cancelItBtn) {
   });
 }
 
+// Convert a date to a "Day N" relative to trip.start.
 function computeDayNumberFromDate(dateStr) {
   if (!trip.start || !dateStr) return null;
-  const s = new Date(trip.start); s.setHours(0,0,0,0);
-  const d = new Date(dateStr);   d.setHours(0,0,0,0);
-  const diff = Math.round((d - s) / (1000*60*60*24));
+  const s = new Date(trip.start);
+  s.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - s) / (1000 * 60 * 60 * 24));
   return diff + 1;
 }
 
+// Add new item or update existing one.
 if (saveItBtn) {
   saveItBtn.addEventListener("click", () => {
     const title = (itTitle && itTitle.value.trim()) || "Activity";
-    const date  = (itDate && itDate.value) || "";
-    const note  = (itNote && itNote.value.trim()) || "";
+    const date = (itDate && itDate.value) || "";
+    const note = (itNote && itNote.value.trim()) || "";
     const dayNum = computeDayNumberFromDate(date);
 
     trip.itinerary = trip.itinerary || [];
 
     if (editingItId) {
-      const idx = trip.itinerary.findIndex(i => i.id === editingItId);
+      const idx = trip.itinerary.findIndex((i) => i.id === editingItId);
       if (idx !== -1) {
         trip.itinerary[idx] = {
           ...trip.itinerary[idx],
-          title, date, note,
-          day: dayNum || trip.itinerary[idx].day || (idx+1),
+          title,
+          date,
+          note,
+          day: dayNum || trip.itinerary[idx].day || idx + 1,
         };
       }
       editingItId = null;
@@ -439,9 +565,10 @@ if (saveItBtn) {
   });
 }
 
+// Load item into form for editing.
 function openItEdit(id) {
   const items = (trip.itinerary || []).concat(trip.locations || []);
-  const it = items.find(x => x.id === id);
+  const it = items.find((x) => x.id === id);
   if (!it) return alert("Itinerary item not found");
 
   editingItId = id;
@@ -452,19 +579,19 @@ function openItEdit(id) {
   if (saveItBtn) saveItBtn.textContent = "Update";
 }
 
+// Remove an itinerary item.
 function deleteItItem(id) {
   if (!confirm("Delete this itinerary item?")) return;
-  trip.itinerary = (trip.itinerary || []).filter(i => i.id !== id);
+  trip.itinerary = (trip.itinerary || []).filter((i) => i.id !== id);
   persistTrip();
   renderItinerary();
   refreshMapMarkers();
 }
 
-
-
+// Save only this trip back into stored trips list.
 function persistTrip() {
   trips = loadTrips();
-  const idx = trips.findIndex(t => t.id === tripId);
+  const idx = trips.findIndex((t) => t.id === tripId);
   if (idx !== -1) {
     trips[idx] = trip;
     saveTrips(trips);
@@ -472,70 +599,80 @@ function persistTrip() {
 }
 
 // ---------------- TRIP EDIT / DELETE ----------------
+// Simple prompt-based trip edit/delete actions.
 const editTripBtn = document.getElementById("editTripBtn");
 const deleteTripBtn = document.getElementById("deleteTripBtn");
 
 if (deleteTripBtn) {
   deleteTripBtn.addEventListener("click", () => {
     if (!confirm("Delete this trip? This action cannot be undone.")) return;
-    const all = loadTrips().filter(t => t.id !== tripId);
+    const all = loadTrips().filter((t) => t.id !== tripId);
     saveTrips(all);
-    window.location.replace("dashboard.html");
+    window.location.replace("/src/Dashboard page/dashboard.html");
   });
 }
 
 if (editTripBtn) {
   editTripBtn.addEventListener("click", () => {
     const newTitle = prompt("Trip title", trip.title || "") || "";
-    const newDesc  = prompt("Trip description", trip.desc || "") || "";
+    const newDesc = prompt("Trip description", trip.desc || "") || "";
     const newStart = prompt("Start date (YYYY-MM-DD)", trip.start || "") || "";
-    const newEnd   = prompt("End date (YYYY-MM-DD)", trip.end || "") || "";
+    const newEnd = prompt("End date (YYYY-MM-DD)", trip.end || "") || "";
 
     trip.title = newTitle;
-    trip.desc  = newDesc;
+    trip.desc = newDesc;
     trip.start = newStart;
-    trip.end   = newEnd;
+    trip.end = newEnd;
 
     persistTrip();
 
+    // Update visible header/overview text after edit.
     if (tripTitleEl) tripTitleEl.textContent = trip.title || "Untitled Trip";
-    if (tripDatesEl) tripDatesEl.textContent =
-      `${formatDate(trip.start)}${trip.start && trip.end ? " to " : ""}${formatDate(trip.end)}`;
-    if (overviewDatesEl) overviewDatesEl.textContent =
-      `Dates: ${formatDate(trip.start)} → ${formatDate(trip.end)}`;
-    if (overviewDescEl) overviewDescEl.textContent =
-      trip.desc ? trip.desc : "No description yet.";
+    if (tripDatesEl)
+      tripDatesEl.textContent = `${formatDate(trip.start)}${
+        trip.start && trip.end ? " to " : ""
+      }${formatDate(trip.end)}`;
+    if (overviewDatesEl)
+      overviewDatesEl.textContent = `Dates: ${formatDate(
+        trip.start
+      )} → ${formatDate(trip.end)}`;
+    if (overviewDescEl)
+      overviewDescEl.textContent = trip.desc
+        ? trip.desc
+        : "No description yet.";
 
     alert("Trip updated");
   });
 }
 
-// ---------------- LEAFLET + OSM (FREE MAP) ----------------
-
+// ---------------- LEAFLET + OSM ----------------
+// Leaflet map setup and marker management.
 let map;
 let mapReady = false;
 let mapMarkers = [];
 
+// Create map instance and base tile layer.
 function initLeafletMap() {
   const mapEl = document.getElementById("map");
   if (!mapEl) return;
 
   map = L.map(mapEl).setView([20, 0], 2);
 
-  // Free OpenStreetMap tiles
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: "&copy; OpenStreetMap contributors",
   }).addTo(map);
 
   mapReady = true;
   refreshMapMarkers();
 }
 
+// Remove all existing markers from map.
 function clearMarkers() {
-  mapMarkers.forEach(m => map.removeLayer(m));
+  mapMarkers.forEach((m) => map.removeLayer(m));
   mapMarkers = [];
 }
 
+// Add markers for itinerary items + trip locations that have coords.
 function refreshMapMarkers() {
   if (!mapReady || !map) return;
 
@@ -543,34 +680,32 @@ function refreshMapMarkers() {
 
   const items = (trip.itinerary || []).concat(trip.locations || []);
 
-  items.forEach(it => {
+  items.forEach((it) => {
     if (typeof it.lat === "number" && typeof it.lng === "number") {
       const marker = L.marker([it.lat, it.lng])
         .addTo(map)
         .bindPopup(it.title || it.location || "Location");
 
-      // remember which trip location this marker is for
+      // Store id on marker so we can find it later.
       marker._locId = it.id;
-
       mapMarkers.push(marker);
     }
   });
 
+  // Auto-fit map to show all markers.
   if (mapMarkers.length) {
     const group = L.featureGroup(mapMarkers);
     map.fitBounds(group.getBounds().pad(0.3));
   }
 }
 
-
-
-// when Map tab is clicked
-const mapTabBtn = tabs.find(t => t.dataset.tab === "map");
+// Extra safety: when map tab is clicked, init if needed then resize.
+const mapTabBtn = tabs.find((t) => t.dataset.tab === "map");
 if (mapTabBtn) {
   mapTabBtn.addEventListener("click", () => {
     if (!mapReady) {
       initLeafletMap();
-      setTimeout(() => map.invalidateSize(), 0); // ✅ fix hidden-tab sizing
+      setTimeout(() => map.invalidateSize(), 0);
     } else {
       refreshMapMarkers();
       setTimeout(() => map.invalidateSize(), 0);
@@ -578,22 +713,22 @@ if (mapTabBtn) {
   });
 }
 
+// Pan/zoom map to a specific trip location.
 function focusLocationOnMap(locId) {
-  if (!mapReady) {
-    initLeafletMap();
-  }
+  if (!mapReady) initLeafletMap();
 
-  const loc = (trip.locations || []).find(l => l.id === locId);
-  if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number" || !map) return;
+  const loc = (trip.locations || []).find((l) => l.id === locId);
+  if (
+    !loc ||
+    typeof loc.lat !== "number" ||
+    typeof loc.lng !== "number" ||
+    !map
+  )
+    return;
 
   const target = [loc.lat, loc.lng];
   map.setView(target, 10);
 
-  // if a marker exists for this place, open its popup
-  const marker = mapMarkers.find(m => m._locId === locId);
-  if (marker) {
-    marker.openPopup();
-  }
+  const marker = mapMarkers.find((m) => m._locId === locId);
+  if (marker) marker.openPopup();
 }
-
-

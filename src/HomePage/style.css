@@ -155,7 +155,7 @@ nav::after {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 150px;
+    gap: 100px;
     align-items: center;
     justify-content: center;
     margin-top: 208px;  

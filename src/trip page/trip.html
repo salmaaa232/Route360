@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Trip — Route 360</title>
+
+  <link rel="stylesheet" href="/src/Dashboard page/dashboard.css">
+  <link rel="stylesheet" href="trip.css"> 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+  <div class="trip-page">
+
+    <!-- top bar -->
+    <header class="trip-header">
+      <button class="back-btn" id="backBtn">← Back</button>
+
+      <div class="top-actions">
+        <a href="/src/Dashboard page/dashboard.html">My trips</a>
+        <a href="/src/Globe Page/globe.html" id="globeLink">Globe</a>
+        <button class="pill" id="logoutBtn">sign out</button>
+      </div>
+    </header>
+
+    <!-- hero cover -->
+    <section class="hero">
+      <img id="heroImg" src="" alt="Trip cover">
+    </section>
+
+    <!-- title + dates card -->
+    <section class="trip-card-wide">
+      <div>
+        <h2 class="trip-title" id="tripTitle">Trip</h2>
+        <div class="trip-dates" id="tripDates">Dates...</div>
+      </div>
+
+      <div class="trip-card-actions">
+        <button class="loc-btn" id="addLocationBtn">+ Location</button>
+        <button class="loc-btn" id="editTripBtn">Edit Trip</button>
+        <button class="loc-btn" id="deleteTripBtn">Delete Trip</button>
+      </div>
+    </section>
+
+    <!-- tabs + content -->
+    <section class="main-panel">
+      <div class="tabs" role="tablist" aria-label="Trip tabs">
+        <button class="tab active" data-tab="overview">overview</button>
+        <button class="tab" data-tab="itinerary">Itinerary</button>
+        <button class="tab" data-tab="map">Map</button>
+      </div>
+
+      <div class="content-grid">
+
+        <!-- LEFT: dynamic tab content -->
+        <div class="left-column" id="leftColumn">
+          <!-- Overview -->
+          <div id="tab-overview">
+            <div class="panel">
+              <h3>Trip summary</h3>
+              <div class="muted" id="overviewDates"></div>
+              <div class="spacer-8"></div>
+              <div class="muted" id="overviewDesc"></div>
+              <div class="spacer-14"></div>
+
+              <button class="loc-btn" id="overviewAddLoc">+ Location</button>
+
+              <!-- locations list -->
+              <div id="overviewLocations" class="overview-locations"></div>
+            </div>
+          </div>
+
+          <!-- Itinerary -->
+          <div id="tab-itinerary" class="hide">
+            <div class="panel">
+              <h3>Full itinerary</h3>
+
+              <div class="itinerary-actions">
+                <button class="loc-btn" id="itineraryAddBtn">+ Add item</button>
+
+                <div id="itineraryForm" class="hide itinerary-form">
+                  <input id="itTitle" class="text-input" type="text" placeholder="What (e.g. Shopping at Market)">
+                  <input id="itDate" class="date-input" type="date">
+                  <input id="itNote" class="text-input" type="text" placeholder="Note (optional)">
+                  <div class="spacer-8"></div>
+
+                  <div class="itinerary-form-buttons">
+                    <button class="btn" id="saveItBtn">Add</button>
+                    <button class="btn ghost" id="cancelItBtn">Cancel</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="itineraryList" class="muted">No itinerary yet.</div>
+            </div>
+          </div>
+
+          <!-- Map tab content (empty for now, map is right panel) -->
+          <div id="tab-map" class="hide"></div>
+        </div>
+
+        <!-- RIGHT: map panel -->
+        <div id="rightMapPanel" class="right-map-panel">
+          <div id="map" class="map-view"></div>
+          <div class="spacer-10"></div>
+          <button class="loc-btn" id="rightAddLoc">+ Location</button>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/src/Auth page/auth.js" defer></script>
+  <script src="trip.js" defer></script>
+
+  <!-- location modal -->
+  <div id="locModal" class="modal hide" aria-hidden="true">
+    <div class="modal__card">
+      <h3 class="modal__title">Add location</h3>
+
+      <div class="autocomplete">
+        <input
+          id="locSearchInput"
+          class="text-input autocomplete__input"
+          type="text"
+          placeholder="Search a place..."
+          autocomplete="off"
+        />
+        <ul id="locSuggestions" class="autocomplete__list hide"></ul>
+      </div>
+
+      <div class="modal__actions">
+        <button id="locCancelBtn" class="btn ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -87,3 +87,12 @@ body{
 }
 
 .hint{font-size:12px;color:var(--muted);line-height:1.5}
+
+.country-name {
+  flex: 1;
+}
+
+.btn-remove {
+  padding: 4px 8px;
+  font-size: 12px;
+}

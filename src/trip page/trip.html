@@ -6,9 +6,17 @@
   <title>Trip — Route 360</title>
 
   <link rel="stylesheet" href="/src/Dashboard page/dashboard.css">
-  <link rel="stylesheet" href="trip.css"> 
+  <link rel="stylesheet" href="trip.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- jQuery UI (for draggable/resizable) -->
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/base/jquery-ui.css">
+  <script defer src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script defer src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
 </head>
 
 <body>
@@ -50,6 +58,7 @@
         <button class="tab active" data-tab="overview">overview</button>
         <button class="tab" data-tab="itinerary">Itinerary</button>
         <button class="tab" data-tab="map">Map</button>
+        <button class="tab" data-tab="scrapbook">Scrapbook</button>
       </div>
 
       <div class="content-grid">
@@ -98,8 +107,157 @@
           </div>
 
           <!-- Map tab content (empty for now, map is right panel) -->
-          <div id="tab-map" class="hide"></div>
+          <!-- Scrapbook -->
+<!-- Scrapbook -->
+<div id="tab-scrapbook" class="hide">
+  <div class="panel">
+    <h3>Trip Scrapbook</h3>
+    <div class="muted">Drag, resize, rotate. Stickers scale properly. Make your own sticker with crop + erase ✨</div>
+    <div class="spacer-10"></div>
+
+    <!-- Toolbar ABOVE (not over canvas) -->
+    <div class="sb-toolbar">
+      <label class="sb-btn">
+        + Photo
+        <input id="sbUpload" type="file" accept="image/*" hidden>
+      </label>
+
+      <button class="sb-btn" id="sbStickerTrayBtn" type="button">🎀 Stickers</button>
+      <button class="sb-btn" id="sbStickerMakerBtn" type="button">🪄 Make Sticker</button>
+
+      <button class="sb-btn" id="sbAddText" type="button">T Text</button>
+
+      <div class="sb-group">
+        <span class="sb-label">Canvas BG</span>
+        <input id="sbCanvasBg" type="color" value="#ffffff">
+      </div>
+
+      <div class="sb-group">
+        <span class="sb-label">Zoom</span>
+        <input id="sbZoom" type="range" min="70" max="140" value="100">
+      </div>
+
+      <div class="sb-group">
+        <span class="sb-label">Rotate</span>
+        <div id="sbRotateSlider" class="sb-rotate-slider"></div>
+      </div>
+
+      <button class="sb-btn sb-btn--ghost" id="sbFront" type="button">⬆ Front</button>
+      <button class="sb-btn sb-btn--ghost" id="sbBack" type="button">⬇ Back</button>
+      <button class="sb-btn sb-btn--ghost" id="sbDuplicate" type="button">Duplicate</button>
+      <button class="sb-btn sb-btn--ghost" id="sbExport" type="button">📸 Export</button>
+      <button class="sb-btn sb-btn--ghost" id="sbClear" type="button">Clear</button>
+
+      <!-- ✏️ Drawing controls -->
+      <button class="sb-btn sb-btn--ghost" id="sbDrawToggle" type="button">✏️ Draw</button>
+
+      <div class="sb-group">
+        <span class="sb-label">Pen</span>
+        <input id="sbPenColor" type="color" value="#111111">
+      </div>
+
+      <div class="sb-group">
+        <span class="sb-label">Size</span>
+        <input id="sbPenSize" type="range" min="2" max="28" value="6">
+      </div>
+
+      <button class="sb-btn sb-btn--ghost" id="sbClearDraw" type="button">Clear drawing</button>
+
+    </div>
+
+    <!-- Sticker tray -->
+    <div id="sbStickerTray" class="sb-tray hide">
+      <button class="sb-tray-btn" data-emoji="✨">✨</button>
+      <button class="sb-tray-btn" data-emoji="🎀">🎀</button>
+      <button class="sb-tray-btn" data-emoji="🌈">🌈</button>
+      <button class="sb-tray-btn" data-emoji="🧳">🧳</button>
+      <button class="sb-tray-btn" data-emoji="✈️">✈️</button>
+      <button class="sb-tray-btn" data-emoji="📸">📸</button>
+      <button class="sb-tray-btn" data-emoji="🗺️">🗺️</button>
+      <button class="sb-tray-btn" data-emoji="🏖️">🏖️</button>
+      <button class="sb-tray-btn" data-emoji="🍦">🍦</button>
+      <button class="sb-tray-btn" data-emoji="⭐">⭐</button>
+      <button class="sb-tray-btn" data-emoji="🫶">🫶</button>
+    </div>
+
+    <!-- Canvas area -->
+    <div id="sbWrap" class="sb-wrap">
+      <div id="sbScroll" class="sb-scroll">
+        <div id="sbWorld" class="sb-world">
+          <div id="sbStage" class="sb-stage"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Sticker Maker Modal -->
+    <div id="sbModal" class="sb-modal hide" aria-hidden="true">
+      <div class="sb-modal-card">
+        <div class="sb-modal-head">
+          <strong>Make a sticker</strong>
+          <button class="sb-btn sb-btn--ghost" id="sbModalClose" type="button">✕</button>
+        </div>
+
+        <div class="sb-modal-body">
+          <label class="sb-btn">
+            Upload image
+            <input id="sbStickerFile" type="file" accept="image/*" hidden>
+          </label>
+
+          <div class="sb-maker-grid">
+            <div class="sb-maker-left">
+              <div class="muted" style="margin:8px 0;">Crop box (drag + resize)</div>
+              <div class="sb-preview-wrap">
+                <canvas id="sbPreview" width="540" height="340"></canvas>
+                <div id="sbCropBox"></div>
+              </div>
+            </div>
+
+            <div class="sb-maker-right">
+              <div class="sb-maker-controls">
+                <label class="sb-mini">BG color (to remove)
+                  <input id="sbRemoveColor" type="color" value="#ffffff">
+                </label>
+
+                <label class="sb-mini">Tolerance
+                  <input id="sbTol" type="range" min="0" max="140" value="35">
+                </label>
+
+                <div class="sb-maker-row">
+                  <button class="sb-btn sb-btn--ghost" id="sbEraserToggle" type="button">🧽 Eraser</button>
+                  <label class="sb-mini">Brush
+                    <input id="sbBrush" type="range" min="4" max="40" value="16">
+                  </label>
+                </div>
+
+                <label class="sb-mini">Cute outline
+                  <select id="sbOutline">
+                    <option value="none">None</option>
+                    <option value="white" selected>White</option>
+                    <option value="pink">Pink</option>
+                    <option value="black">Black</option>
+                    <option value="glow">Glow</option>
+                  </select>
+                </label>
+
+                <button class="sb-btn" id="sbAddStickerFromMaker" type="button">Add as sticker</button>
+
+                <div class="muted" style="font-size:12px;line-height:1.35;">
+                  Tip: Use crop first, then tolerance, then eraser for perfect edges ✨
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
 
         <!-- RIGHT: map panel -->
         <div id="rightMapPanel" class="right-map-panel">
@@ -115,6 +273,7 @@
 
   <script src="/src/Auth page/auth.js" defer></script>
   <script src="trip.js" defer></script>
+  <script src="scrapbook.js" defer></script>
 
   <!-- location modal -->
   <div id="locModal" class="modal hide" aria-hidden="true">

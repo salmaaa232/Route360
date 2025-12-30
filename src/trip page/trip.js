@@ -1,7 +1,7 @@
 // trip.js — Trip details page:
 // - guarded by auth
 // - loads/saves trips per user in localStorage
-// - tabs (overview / itinerary / map)
+// - tabs (overview / itinerary / map / scrapbook)
 // - itinerary CRUD
 // - locations UI + Photon autocomplete
 // - Leaflet map with markers
@@ -64,7 +64,6 @@ let trip = trips.find((t) => t.id === tripId);
 
 // If the trip doesn't exist, bounce back to dashboard.
 if (!trip) {
-  // alert("Trip not found");
   window.location.replace("/src/Dashboard page/dashboard.html");
 }
 
@@ -123,19 +122,32 @@ const views = {
   overview: document.getElementById("tab-overview"),
   itinerary: document.getElementById("tab-itinerary"),
   map: document.getElementById("tab-map"),
+  scrapbook: document.getElementById("tab-scrapbook"),
 };
+
 const rightMapPanel = document.getElementById("rightMapPanel");
+const contentGrid = document.querySelector(".content-grid");
 
 // Switch visible pane and handle map resizing when needed.
-function showTab(name) {
+window.showTab = function showTab(name) {
   tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
   Object.entries(views).forEach(([k, el]) => {
     if (el) el.classList.toggle("hide", k !== name);
   });
 
-  // Right-side map panel is hidden on itinerary view.
-  if (rightMapPanel)
-    rightMapPanel.style.display = name === "itinerary" ? "none" : "block";
+  // Right-side map panel is hidden on itinerary view AND scrapbook view.
+  if (rightMapPanel) {
+    rightMapPanel.style.display =
+      name === "itinerary" || name === "scrapbook" ? "none" : "block";
+  }
+
+  // Make content grid single column when right panel is hidden
+  if (contentGrid) {
+    contentGrid.classList.toggle(
+      "single",
+      name === "itinerary" || name === "scrapbook"
+    );
+  }
 
   // Leaflet needs invalidateSize when its container becomes visible.
   if (name === "map") {
@@ -144,13 +156,13 @@ function showTab(name) {
       if (map) map.invalidateSize();
     }, 50);
   }
-}
+};
 
 // Bind tab click handlers.
 tabs.forEach((btn) =>
-  btn.addEventListener("click", () => showTab(btn.dataset.tab))
+  btn.addEventListener("click", () => window.showTab(btn.dataset.tab))
 );
-showTab("overview");
+window.showTab("overview");
 
 // ---------------- ITINERARY RENDER ----------------
 // Renders itinerary list with Edit/Delete and "+Loc" actions.

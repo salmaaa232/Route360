@@ -1,4 +1,3 @@
-
 body { background: #f6f7f8; }
 
 .trip-page {
@@ -192,4 +191,182 @@ body { background: #f6f7f8; }
   height: 320px;
   border-radius: 10px;
   margin-top: 12px;
+}
+
+
+/* make left column expand when right panel hidden */
+.content-grid.single {
+  grid-template-columns: 1fr;
+}
+
+/* ---------- Scrapbook UI ---------- */
+.sb-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  padding:10px;
+  border-radius:14px;
+  background:#fff;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 6px 18px rgba(0,0,0,.04);
+  margin-bottom:10px;
+}
+.sb-btn{
+  background:#111;
+  color:#fff;
+  border:0;
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:12px;
+  cursor:pointer;
+}
+.sb-btn--ghost{
+  background:transparent;
+  color:#111;
+  border:1px solid rgba(0,0,0,.14);
+}
+.sb-group{ display:flex; align-items:center; gap:8px; font-size:12px; color:#111; }
+.sb-label{ font-weight:700; color:#333; }
+.sb-rotate-slider{ width:130px; }
+
+.sb-tray{
+  padding:10px;
+  border-radius:14px;
+  background:#fff;
+  border:1px solid rgba(0,0,0,.08);
+  margin-bottom:10px;
+}
+.sb-tray-btn{
+  width:44px;height:44px;
+  border-radius:12px;
+  border:1px solid rgba(0,0,0,.10);
+  background:#fff;
+  font-size:22px;
+  cursor:pointer;
+  margin:4px;
+}
+
+/* FIXED canvas area (not huge) */
+.sb-wrap{
+  position:relative;
+  width:100%;
+  height:560px;
+  border-radius:14px;
+  border:1px solid #eaeaea;
+  overflow:hidden;
+  background:#fff;
+}
+.sb-scroll{ position:absolute; inset:0; overflow:auto; }
+.sb-world{ width:100%; height:100%; padding:14px; position:relative; }
+.sb-stage{
+  width:100%;
+  height:100%;
+  position:relative;
+  transform-origin: top left;
+}
+
+/* items */
+.sb-item{ position:absolute; user-select:none; }
+.sb-item.selected{ outline:0 !important; box-shadow:none !important; } /* remove selection border */
+.sb-pop{ animation: sbPop .18s ease-out; }
+@keyframes sbPop{ from{ transform:scale(.985);} to{ transform:scale(1);} }
+
+/* Photo */
+.sb-photo{
+  width:260px; height:180px;
+  border-radius:14px;
+  overflow:hidden;
+  background:#f3f3f3;
+  box-shadow:0 10px 22px rgba(0,0,0,.12);
+}
+.sb-photo img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+
+/* Emoji sticker */
+.sb-emoji{
+  width:140px; height:140px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:72px;
+  filter: drop-shadow(0 8px 14px rgba(0,0,0,.14));
+}
+
+/* Image sticker */
+.sb-stickerimg{
+  width:160px; height:160px;
+  display:flex; align-items:center; justify-content:center;
+}
+.sb-stickerimg img{
+  width:100%; height:100%;
+  object-fit:contain;
+  pointer-events:none;
+  filter: drop-shadow(0 8px 14px rgba(0,0,0,.14));
+}
+
+/* Invisible resize handles until hover (clean!) */
+.ui-resizable-handle{
+  width:14px; height:14px;
+  background: transparent !important;
+  border: 0 !important;
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.sb-item:hover .ui-resizable-handle{
+  opacity: 1;
+  background: rgba(0,0,0,.08) !important;
+  border-radius: 999px;
+}
+
+/* Modal ALWAYS on top (fix tab overlap) */
+.sb-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.38);
+  z-index:999999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.sb-modal.hide{ display:none !important; }
+.sb-modal-card{
+  width:min(980px, 94vw);
+  background:#fff;
+  border-radius:16px;
+  border:1px solid rgba(0,0,0,.10);
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+  padding:12px;
+}
+.sb-modal-head{ display:flex; align-items:center; justify-content:space-between; padding:8px 8px 12px; }
+.sb-maker-grid{ display:grid; grid-template-columns: 1.25fr .75fr; gap:12px; }
+.sb-preview-wrap{ position:relative; border-radius:14px; border:1px solid rgba(0,0,0,.10); overflow:hidden; background:#fafafa; }
+#sbPreview{ width:100%; display:block; }
+
+/* Crop box */
+#sbCropBox{
+  position:absolute;
+  left:120px; top:70px;
+  width:220px; height:180px;
+  border:2px dashed rgba(0,0,0,.7);
+  border-radius:12px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.15);
+  cursor:move;
+}
+
+/* Drawing overlay canvas */
+.sb-draw-canvas{
+  position:absolute;
+  left:0; top:0;
+  width:100%;
+  height:100%;
+  pointer-events:none; /* off by default */
+}
+
+/* When drawing is enabled */
+.sb-stage.is-drawing .sb-draw-canvas{
+  pointer-events:auto; /* capture mouse/touch */
+  cursor: crosshair;
+}
+
+/* Optional: while drawing, disable interacting with items (prevents dragging while drawing) */
+.sb-stage.is-drawing .sb-item{
+  pointer-events:none;
 }
